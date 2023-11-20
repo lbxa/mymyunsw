@@ -113,9 +113,8 @@ class Requirement(Db):
 
     """Lookup table for formatting all requirements types
 
-  Everything goes through this here :D
-  """
-
+    Everything goes through this here :D
+    """
     def __str__(self) -> str:
         format_lookup = {
             "uoc": self.format_uoc_req,

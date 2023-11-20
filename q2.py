@@ -12,8 +12,6 @@ NULL_CHAR = f"{'?':>6}"
 Sanitise an attribute to a string of length 6 for clean formatting
 to stdout
 """
-
-
 def sanitise(attr):
     if attr is None:
         return NULL_CHAR
@@ -74,9 +72,7 @@ try:
     print("Term  Satis  #resp   #stu  Convenor")
     for tup in cur.fetchall():
         term, satisf, responses, students, convenor = tup
-        print(
-            f"{term} {sanitise(satisf)} {sanitise(responses)} {sanitise(students)}  {sanitise(convenor)}"
-        )
+        print(f"{term} {sanitise(satisf)} {sanitise(responses)} {sanitise(students)}  {sanitise(convenor)}")
 
 
 except Exception as err:

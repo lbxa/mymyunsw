@@ -76,9 +76,7 @@ class Db:
     """
 
     def __init__(self):
-        self._db = psycopg2.connect(
-            "dbname=a2 user=a2 password=password host=localhost"
-        )
+        self._db = psycopg2.connect("dbname=a2 user=a2 password=password host=localhost")
 
     @property
     def conn(self):

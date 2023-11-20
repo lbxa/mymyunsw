@@ -66,30 +66,30 @@ GRADE_LOOKUP_FOR_WAM = {
     "WJ": False,
 }
 
-class Db:
-    """Connect to the database
+# class Db:
+#     """Connect to the database
 
-    The only intention of this class is to connect to be inherited by other classes
-    that wish to connect to the pg database instance
+#     The only intention of this class is to connect to be inherited by other classes
+#     that wish to connect to the pg database instance
 
-    TODO: Make this a singleton class
-    """
+#     TODO: Make this a singleton class
+#     """
 
-    def __init__(self):
-        self.db = psycopg2.connect("dbname=a2 user=a2 password=password host=localhost")
+#     def __init__(self):
+#         self.db = psycopg2.connect("dbname=a2 user=a2 password=password host=localhost")
 
-    @property
-    def conn(self):
-        return self.db
+#     @property
+#     def conn(self):
+#         return self.db
 
-    @conn.setter
-    def conn(self, value):
-        self.db = value
+#     @conn.setter
+#     def conn(self, value):
+#         self.db = value
 
-    # def __del__(self):
-    #     self.db.close()
+#     # def __del__(self):
+#     #     self.db.close()
 
-class Requirement(Db):
+class Requirement():
     """Glorified stdouter
 
     Summary:
@@ -103,8 +103,8 @@ class Requirement(Db):
         Db (_type_): inherits from the Db class to query the database
     """
 
-    def __init__(self, code, name, type, min_req, max_req, acadobjs: str) -> None:
-        super().__init__()
+    def __init__(self, db, code, name, type, min_req, max_req, acadobjs: str) -> None:
+        self.conn = db
         self.name = name
         self.code = code
         self.type = type

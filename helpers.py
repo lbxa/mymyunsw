@@ -239,11 +239,13 @@ class CourseMark:
        return self.sanitise_failing_grade() not in ('fail', 'unrs')
     
     def __format_grade(self):
-        sanitised_grade = self.sanitise_failing_grade()
-        mark_outcome = str(self.uoc if self.req_name is not False else 0) + "uoc" if not sanitised_grade else sanitised_grade
-        mark = self.mark if self.mark is not None else '-'
+        failing_grade = self.sanitise_failing_grade()
+        mark_outcome = str(self.uoc if self.req_name is not False else 0) + "uoc" if not failing_grade else failing_grade
 
-        return f"{mark:>3} {self.grade:>2s}  {mark_outcome:2s}"
+        mark = self.mark if self.mark is not None else '-'
+        grade = self.grade if self.grade is not None else '-'
+        
+        return f"{mark:>3} {grade:>2s}  {mark_outcome:2s}"
 
     def __format_req_name(self):
         if self.req_name is None:

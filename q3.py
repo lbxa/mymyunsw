@@ -2,8 +2,7 @@
 # Lucas Barbosa (z5259433)
 
 import sys
-from psycopg2 import sql
-from helpers import Db, Requirement, getProgram, getRequirements, getStream, getSubject, SUBJECT
+from helpers import Db, Requirement, getProgram, getRequirements, getStream  
 
 ### set up some globals
 

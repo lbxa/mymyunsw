@@ -40,7 +40,7 @@ try:
 
         for progReq in getRequirements(db, code, table=codeOf + "s"):
             code, name, rtype, min_req, max_req, acadobjs = progReq
-            r = Requirement(*progReq)
+            r = Requirement(db, *progReq)
             print(r)
 
     elif codeOf == "stream":

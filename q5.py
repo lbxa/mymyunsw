@@ -170,7 +170,7 @@ if argc == 4:
   strm_code = sys.argv[3]
 
 # try:
-db = psycopg2.connect("dbname=a2 user=a2 password=password host=localhost")
+db = psycopg2.connect("dbname=ass2")
 
 stu_info = getStudent(db, zid)
 if not stu_info:

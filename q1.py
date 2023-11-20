@@ -14,7 +14,7 @@ db = None
 ### process command-line args
 
 try:
-    db = psycopg2.connect("dbname=a2 user=a2 password=password host=localhost")
+    db = psycopg2.connect("dbname=ass2")
 
     cur = db.cursor()
 

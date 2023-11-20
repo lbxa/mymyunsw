@@ -26,7 +26,7 @@ else:
     exit(1)
 
 try:
-    db = psycopg2.connect("dbname=a2 user=a2 password=password host=localhost")
+    db = psycopg2.connect("dbname=ass2")
 
     if codeOf == "program":
         progInfo = getProgram(db, code)

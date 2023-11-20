@@ -36,7 +36,7 @@ if not check.match(subject):
 
 
 try:
-    db = psycopg2.connect("dbname=a2 user=a2 password=password host=localhost")
+    db = psycopg2.connect("dbname=ass2")
     subjectInfo = getSubject(db, subject)
     if not subjectInfo:
         print(f"Invalid subject code {subject}")

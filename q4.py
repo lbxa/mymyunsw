@@ -3,7 +3,7 @@
 
 import sys
 import re
-from helpers import  Db, Transcript, getStudent
+from helpers import  Db, Transcript, getStudent, getStudentEnrolment
 
 ### set up some globals
 
@@ -23,35 +23,6 @@ digits = re.compile("^\d{7}$")
 if not digits.match(zid):
     print(f"Invalid student ID {zid}")
     exit(1)
-
-
-def getStudentEnrolment(db, zid) -> (str, str, str):
-    cur = db.cursor()
-    cur.execute("""
-        select
-            p.code,
-            s.code,
-            p.name,
-            max(t.starting) as start_date
-        from program_enrolments pe
-        join stream_enrolments se on pe.id = se.part_of
-        join streams s on se.stream = s.id
-        join programs p on pe.program = p.id
-        join people pep on pe.student = pep.id
-        join terms t on pe.term = t.id
-        where pep.zid = %s 
-        group by 
-            p.code,
-            s.code,
-            p.name
-    """, (zid,),)
-    info = cur.fetchone()
-    cur.close()
-    if not info:
-        return None
-    else:
-        prog_code, stream_code, prog_name, _ = info
-        return prog_code, stream_code, prog_name
 
 try:
     db = Db()

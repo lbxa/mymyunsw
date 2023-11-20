@@ -258,3 +258,31 @@ def getStudentMarks(db, zid) -> (str, str, str, int, str, int):
         return []
     else:
         return info
+
+def getStudentEnrolment(db, zid) -> (str, str, str):
+    cur = db.cursor()
+    cur.execute("""
+        select
+            p.code,
+            s.code,
+            p.name,
+            max(t.starting) as start_date
+        from program_enrolments pe
+        join stream_enrolments se on pe.id = se.part_of
+        join streams s on se.stream = s.id
+        join programs p on pe.program = p.id
+        join people pep on pe.student = pep.id
+        join terms t on pe.term = t.id
+        where pep.zid = %s 
+        group by 
+            p.code,
+            s.code,
+            p.name
+    """, (zid,),)
+    info = cur.fetchone()
+    cur.close()
+    if not info:
+        return None
+    else:
+        prog_code, stream_code, prog_name, _ = info
+        return prog_code, stream_code, prog_name

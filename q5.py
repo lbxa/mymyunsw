@@ -2,12 +2,24 @@
 # COMP3311 21T3 Ass2 ... progression check for a given student
 
 import sys
-import psycopg2
 import re
-from helpers import Db, getStudent, getProgram, getStream
-# from q4 import Transcript
+from typing import override
+from helpers import Db, Transcript, getStudent, getProgram, getStream, getStudentEnrolment
 
 # define any local helper functions here
+class ProgressionCheck(Transcript):
+  def __init__(self, zid, prog_code, strm_code):
+    super().__init__(zid)
+    self.prog_code = prog_code
+    self.strm_code = strm_code
+
+  @override
+  def __str__(self):
+    return super().__str__()
+
+  @override
+  def __del__(self):
+    return super().__del__()
 
 ### set up some globals
 
@@ -28,42 +40,44 @@ if not digits.match(zid):
   print("Invalid student ID")
   exit(1)
 
-progCode = None
-strmCode = None
+prog_code = None
+strm_code = None
 
 if argc == 4:
-  progCode = sys.argv[2]
-  strmCode = sys.argv[3]
+  prog_code = sys.argv[2]
+  strm_code = sys.argv[3]
 
 # manipulate database
 
 try:
   db = Db()
 
-  stuInfo = getStudent(db.conn,zid)
-  if not stuInfo:
+  stu_info = getStudent(db.conn,zid)
+  if not stu_info:
     print(f"Invalid student id {zid}")
     exit(1)
-  #print(stuInfo) # debug
 
-  if progCode:
-    progInfo = getProgram(db.conn,progCode)
+  _, zid, family_name, given_names, full_name, origin =stu_info 
+
+  if not prog_code or not strm_code:
+    prog_code, strm_code, _ = getStudentEnrolment(db.conn, zid)
+
+  if prog_code:
+    progInfo = getProgram(db.conn, prog_code)
     if not progInfo:
-      print(f"Invalid program code {progCode}")
+      print(f"Invalid program code {prog_code}")
       exit(1)
-    #print(progInfo)  #debug
 
-  if strmCode:
-    strmInfo = getStream(db.conn,strmCode)
+  if strm_code:
+    strmInfo = getStream(db.conn, strm_code)
     if not strmInfo:
-      print(f"Invalid program code {strmCode}")
+      print(f"Invalid program code {strm_code}")
       exit(1)
-    #print(strmInfo)  #debug
 
-    _, zid, family_name, given_names, full_name, origin = stuInfo
+    _, zid, family_name, given_names, full_name, origin = stu_info 
     print(f"Student: {zid} {full_name}")
-    # t = Transcript(zid)
-    # print(t)
+    pc = ProgressionCheck(zid, prog_code, strm_code)
+    print(pc)
 
   # if have a program/stream
   #   show progression check on supplied program/stream
@@ -77,4 +91,3 @@ except Exception as err:
 finally:
   if db:
     db.__del__()
-

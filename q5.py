@@ -196,9 +196,6 @@ if strm_code:
     print(f"Invalid program code {strm_code}")
     exit(1)
 
-strm_name, = strm_info 
-print(strm_name)
-
 print(f"{zid} {family_name}, {given_names}")
 print(prog_code, strm_code, prog_name)
 

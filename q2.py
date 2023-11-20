@@ -79,4 +79,4 @@ except Exception as err:
     print(err)
 finally:
     if db:
-        db.close()
+      db.close()

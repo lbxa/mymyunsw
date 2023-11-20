@@ -3,6 +3,7 @@
 # you must submit this even if you add nothing
 
 import psycopg2
+from psycopg2 import sql
 
 SUBJECT = "########"
 STREAM = "######"
@@ -74,18 +75,172 @@ class Db:
     """
 
     def __init__(self):
-        self._db = psycopg2.connect("dbname=a2 user=a2 password=password host=localhost")
+        self.db = psycopg2.connect("dbname=a2 user=a2 password=password host=localhost")
 
     @property
     def conn(self):
-        return self._db
+        return self.db
 
     @conn.setter
     def conn(self, value):
-        self._db = value
+        self.db = value
 
-    def __del__(self):
-        self._db.close()
+    # def __del__(self):
+    #     self.db.close()
+
+class Requirement(Db):
+    """Glorified stdouter
+
+    Summary:
+      The idea is to encapsulate all relevant information about how a requirement
+      should be printed to stdout in this class so one can simply call
+        r = Requirement(*args)
+        print(r)
+      and not worry about any logic leaking out.
+
+    Args:
+        Db (_type_): inherits from the Db class to query the database
+    """
+
+    def __init__(self, code, name, type, min_req, max_req, acadobjs: str) -> None:
+        super().__init__()
+        self.name = name
+        self.code = code
+        self.type = type
+        self.min_req = min_req if min_req is not None else 0
+        self.max_req = max_req if max_req is not None else 0
+        self.acadobjs = acadobjs
+
+    def __acadobj_desc(self, acadobj) -> str:
+        if type(acadobj) is list:
+            return [getSubject(self.conn, obj) for obj in acadobj]
+
+        return (
+            getSubject(self.conn, acadobj)
+            if len(acadobj) == len(SUBJECT)
+            else getStream(self.conn, acadobj)[0]
+        )
+
+    """ Does a lot of the heavy lifting
+  
+    Parse acadobjs into a list of subjects/streams and return strings in accordance
+    to the logic specific in the Requirement spec
+    """
+
+    def __parse_acadobjs(self) -> list:
+        if self.acadobjs is not None:
+            obj_list = [s.strip() for s in self.acadobjs.split(",")]
+            for i, obj in enumerate(obj_list):
+                if obj[0] == "{" and obj[-1] == "}":
+                    obj_list[i] = obj[1:-1].split(";")
+
+            format = (
+                lambda s, dash=False: f"{'- ' if dash else ''}{s} {self.__acadobj_desc(s)}"
+            )
+            return "\n".join(
+                "- " + "\n  or ".join([format(sublist) for sublist in obj])
+                if type(obj) is list else format(obj, True)
+                for obj in obj_list
+            )
+
+    """Help parse max/min criteria for UOC requirements
+  
+    If max == null => "at least min UOC"
+    If min == null => "up to MAX UOC"
+    If min == max => "min/max UOC"
+    
+    Note max == null and min == null CANNOT happen
+    """
+
+    def uoc_minmax(self):
+        min_uoc, max_uoc = self.min_req, self.max_req
+        action_lookup = {
+            0: f"{min_uoc}",
+            1: f"at least {min_uoc}",
+            2: f"up to {max_uoc}",
+            3: f"between {min_uoc} and {max_uoc}",
+        }
+
+        p = 0
+        if max_uoc == 0:
+            p += 1
+        elif min_uoc == 0:
+            p += 2
+        elif min_uoc != max_uoc:
+            p += 3
+
+        action = action_lookup.get(p, 0)
+
+        return f"{action} UOC"
+
+    def format_uoc_req(self):
+        return f"{self.name} {self.uoc_minmax()}"
+
+    def format_stream_req(self):
+        return f"1 stream from {self.name}\n{self.__parse_acadobjs()}"
+
+    def format_core_req(self):
+        return f"all courses from {self.name}\n{self.__parse_acadobjs()}"
+
+    def format_elective_req(self):
+        return f"{self.uoc_minmax()} courses from {self.name}\n- {self.acadobjs}"
+
+    def format_gened_req(self):
+        return f"{self.uoc_minmax()} of General Education"
+
+    def format_free_req(self):
+        return f"{self.uoc_minmax()} of {self.name}"
+
+    """Lookup table for formatting all requirements types
+
+    Everything goes through this here :D
+    """
+    def __str__(self) -> str:
+        format_lookup = {
+            "uoc": self.format_uoc_req,
+            "stream": self.format_stream_req,
+            "core": self.format_core_req,
+            "elective": self.format_elective_req,
+            "gened": self.format_gened_req,
+            "free": self.format_free_req,
+        }
+
+        format = format_lookup.get(self.type, "Invalid requirement type")
+        return format()
+
+    # def __del__(self):
+    #     super().__del__()
+
+class CourseMark:
+    def __init__(self, course_code, term, course_title, mark, grade, uoc, req_name): 
+        self.course_code = course_code
+        self.term = term
+        self.course_title = course_title
+        self.mark = mark
+        self.grade = grade
+        self.uoc = uoc
+        self.req_name = req_name
+    
+    def sanitise_failing_grade(self):
+        sanitised_grade = False
+        if self.grade in ("AF", "FL", "UF", "E", "F"):
+            sanitised_grade = "fail"
+        elif self.grade in ("AS", "AW", "PW", "NA", "RD", "NF", "NC", "LE", "PE", "WD", "WJ"):
+            sanitised_grade = "unrs"
+
+        return sanitised_grade
+    
+    def __format_grade(self):
+        sanitised_grade = self.sanitise_failing_grade()
+        mark_result = str(self.uoc) + "uoc" if not sanitised_grade else sanitised_grade
+
+        return f"{self.mark if self.mark is not None else '-':>3} {self.grade:>2s}  {mark_result:2s}"
+
+    def __format_req_name(self):
+        return " (req)" if self.req_name is not None else "" 
+
+    def __str__(self):
+        return f"{self.course_code} {self.term} {self.course_title[:31]:<32s}{self.__format_grade()}{self.__format_req_name()}"
 
 class Transcript(Db):
     """Glorified stdouter
@@ -104,7 +259,7 @@ class Transcript(Db):
     def __init__(self, zid):
         super().__init__()
         self.zid = zid
-        self.marks = getStudentMarks(self.conn, zid)
+        self.marks = [CourseMark(*mark, None) for mark in getStudentMarks(self.conn, zid)]
         self.grades_for_uoc = GRADE_LOOKUP_FOR_UOC
         self.grades_for_wam = GRADE_LOOKUP_FOR_WAM
 
@@ -117,21 +272,21 @@ class Transcript(Db):
 
     def calc_uoc(self):
         applicable_uoc = [
-            mark[-1]
+            mark.uoc
             for mark in self.marks
-            if self.is_grade_applicable(mark[4], target="uoc")
+            if self.is_grade_applicable(mark.grade, target="uoc")
         ]
 
         return sum(applicable_uoc)
 
     def calc_wam(self):
         applicable_marks = [
-            (mark[3], mark[-1])
+            (mark.mark, mark.uoc)
             for mark in self.marks
-            if self.is_grade_applicable(mark[4], target="wam")
+            if self.is_grade_applicable(mark.grade, target="wam")
         ]
 
-        total_attempted_uoc = [mark[-1] for mark in applicable_marks]
+        total_attempted_uoc = [uoc for _, uoc in applicable_marks]
 
         if len(total_attempted_uoc) == 0:
             return 0.0
@@ -139,48 +294,32 @@ class Transcript(Db):
         weighted_mark = [mark * uoc for mark, uoc in applicable_marks]
 
         return sum(weighted_mark) / float(sum(total_attempted_uoc))
-
-    def __format_mark(self, mark, grade, uoc):
-        mark_result = str(uoc) + "uoc"
-
+    
+    def sanitise_failing_grade(self, grade):
+        sanitised_grade = False
         if grade in ("AF", "FL", "UF", "E", "F"):
-            mark_result = "fail"
-        elif grade in (
-            "AS",
-            "AW",
-            "PW",
-            "NA",
-            "RD",
-            "NF",
-            "NC",
-            "LE",
-            "PE",
-            "WD",
-            "WJ",
-        ):
-            mark_result = "unrs"
+            sanitised_grade = "fail"
+        elif grade in ("AS", "AW", "PW", "NA", "RD", "NF", "NC", "LE", "PE", "WD", "WJ"):
+            sanitised_grade = "unrs"
 
-        return f"{mark if mark is not None else '-':>3} {grade:>2s}  {mark_result:2s}"
+        return sanitised_grade
 
-    def __format_marks(self):
-        format_str = (
-            lambda course_code, term, course_title, mark, grade, uoc: f"{course_code} {term} {course_title[:31]:<32s}{self.__format_mark(mark, grade, uoc)}"
-        )
-        return "\n".join(format_str(*mark) for mark in self.marks)
+    def format_marks(self):
+        return "\n".join(mark.__str__() for mark in self.marks)
 
-    def __format_uoc(self):
+    def format_uoc(self):
         return f"UOC = {self.calc_uoc()}"
 
-    def __format_wam(self):
+    def format_wam(self):
         return f"WAM = {self.calc_wam():.1f}"
 
     def __str__(self):
         return "\n".join(
-            [self.__format_marks(), f"{self.__format_uoc()}, {self.__format_wam()}"]
+            [self.format_marks(), f"{self.format_uoc()}, {self.format_wam()}"]
         )
 
-    def __del__(self):
-        super().__del__()
+    # def __del__(self):
+    #     super().__del__()
 
 def getProgram(db, code):
     cur = db.cursor()
@@ -286,3 +425,35 @@ def getStudentEnrolment(db, zid) -> (str, str, str):
     else:
         prog_code, stream_code, prog_name, _ = info
         return prog_code, stream_code, prog_name
+
+def getRequirements(db, code, table="streams"):
+    if table not in ("programs", "streams"):
+        raise ValueError("table should be 'programs' or 'streams'")
+
+    fields = [
+        "j.code",  # streams.code or programs.code
+        "r.name",
+        "r.rtype",
+        "r.min_req",
+        "r.max_req",
+        "r.acadobjs",
+    ]
+
+    join_table = "streams" if table == "streams" else "programs"
+    join_field = f"for_{join_table[:-1]}"
+
+    query = sql.SQL("""
+        select {fields} 
+        from requirements r 
+        join {join_table} j on r.{join_field} = j.id 
+        where j.code = %s
+        order by r.id
+    """).format(
+        fields=sql.SQL(", ").join(map(lambda f: sql.Identifier(*f.split(".")), fields)),
+        join_table=sql.Identifier(join_table),
+        join_field=sql.Identifier(join_field),
+    )
+
+    cur = db.cursor()
+    cur.execute(query, (code,))
+    return cur.fetchall()

@@ -3,7 +3,7 @@
 
 import sys
 import re
-from helpers import  Db, Transcript, getStudent, getStudentEnrolment
+from helpers import  Db, Transcript, getRequirements, getStudent, getStudentEnrolment
 
 ### set up some globals
 
@@ -44,4 +44,4 @@ except Exception as err:
     print("DB error: ", err)
 finally:
     if db:
-        db.__del__()
+         db.conn.close()

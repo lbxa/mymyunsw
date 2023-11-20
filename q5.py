@@ -3,8 +3,7 @@
 
 import sys
 import re
-from typing import override
-from helpers import Db, Transcript, getStudent, getProgram, getStream, getStudentEnrolment
+from helpers import CourseMark, Db, Requirement, Transcript, getRequirements, getStudent, getProgram, getStream, getStudentEnrolment, getStudentMarks
 
 # define any local helper functions here
 class ProgressionCheck(Transcript):
@@ -12,14 +11,13 @@ class ProgressionCheck(Transcript):
     super().__init__(zid)
     self.prog_code = prog_code
     self.strm_code = strm_code
+    self.marks = [CourseMark(*mark, "req") for mark in getStudentMarks(self.conn, zid)]
 
-  @override
   def __str__(self):
-    return super().__str__()
+      return "\n".join(
+          [super().format_marks(), f"{super().format_uoc()}, {super().format_wam()}"]
+      )
 
-  @override
-  def __del__(self):
-    return super().__del__()
 
 ### set up some globals
 
@@ -47,8 +45,6 @@ if argc == 4:
   prog_code = sys.argv[2]
   strm_code = sys.argv[3]
 
-# manipulate database
-
 try:
   db = Db()
 
@@ -57,27 +53,50 @@ try:
     print(f"Invalid student id {zid}")
     exit(1)
 
-  _, zid, family_name, given_names, full_name, origin =stu_info 
+  _, zid, family_name, given_names, _, _= stu_info 
 
   if not prog_code or not strm_code:
     prog_code, strm_code, _ = getStudentEnrolment(db.conn, zid)
 
   if prog_code:
-    progInfo = getProgram(db.conn, prog_code)
-    if not progInfo:
+    prog_info = getProgram(db.conn, prog_code)
+    if not prog_info:
       print(f"Invalid program code {prog_code}")
       exit(1)
 
+  _, _, prog_name = prog_info 
+
   if strm_code:
-    strmInfo = getStream(db.conn, strm_code)
-    if not strmInfo:
+    strm_info = getStream(db.conn, strm_code)
+    if not strm_info:
       print(f"Invalid program code {strm_code}")
       exit(1)
 
-    _, zid, family_name, given_names, full_name, origin = stu_info 
-    print(f"Student: {zid} {full_name}")
-    pc = ProgressionCheck(zid, prog_code, strm_code)
-    print(pc)
+  strm_name, = strm_info 
+  print(strm_name)
+
+  print(f"{zid} {family_name}, {given_names}")
+  print(prog_code, strm_code, prog_name)
+
+  pc = ProgressionCheck(zid, prog_code, strm_code)
+  print(pc)
+
+  strm_reqs = [Requirement(*r) for r in getRequirements(db.conn, strm_code, "streams")]
+  prog_reqs = [Requirement(*r) for r in getRequirements(db.conn, prog_code, "programs")]
+
+  """
+  strategy
+    1. core 
+    2. elective 
+    3. gened
+    4. free
+  """
+
+  for prog_req in prog_reqs:
+      print(prog_req)
+
+  for strm_req in strm_reqs:
+      print(strm_req)
 
   # if have a program/stream
   #   show progression check on supplied program/stream
@@ -90,4 +109,4 @@ except Exception as err:
   print("DB error: ", err)
 finally:
   if db:
-    db.__del__()
+    db.conn.close()

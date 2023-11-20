@@ -90,7 +90,7 @@ class Transcript(Db):
 
     def __str__(self):
         return "\n".join(
-            [self.__format_marks(), f"{self.__format_uoc()}, {self.__format_wam}"]
+            [self.__format_marks(), f"{self.__format_uoc()}, {self.__format_wam()}"]
         )
 
     def __del__(self):

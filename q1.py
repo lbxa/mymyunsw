@@ -19,21 +19,18 @@ try:
     cur = db.cursor()
 
     start, end = "19T1", "23T3"
-    cur.execute(
-        """
-      select 
-        pe.student, 
-        s.status,
-        t.code,
-        p.name
-      from program_enrolments pe
-      join terms t on pe.term = t.id
-      join programs p on pe.program = p.id
-      join students s on pe.student = s.id
-      where t.code between %s and %s
-  """,
-        (start, end),
-    )
+    cur.execute("""
+        select 
+            pe.student, 
+            s.status,
+            t.code,
+            p.name
+        from program_enrolments pe
+        join terms t on pe.term = t.id
+        join programs p on pe.program = p.id
+        join students s on pe.student = s.id
+        where t.code between %s and %s
+    """, (start, end),)
 
     students_by_term = defaultdict(list)
     stu_cache = set()

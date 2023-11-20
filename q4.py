@@ -124,27 +124,24 @@ if not digits.match(zid):
 
 def getStudentEnrolment(db, zid) -> (str, str, str):
     cur = db.cursor()
-    cur.execute(
-        """
-    select
-      p.code,
-      s.code,
-      p.name,
-      max(t.starting) as start_date
-    from program_enrolments pe
-    join stream_enrolments se on pe.id = se.part_of
-    join streams s on se.stream = s.id
-    join programs p on pe.program = p.id
-    join people pep on pe.student = pep.id
-    join terms t on pe.term = t.id
-    where pep.zid = %s 
-    group by 
-      p.code,
-      s.code,
-      p.name
-  """,
-        (zid,),
-    )
+    cur.execute("""
+        select
+            p.code,
+            s.code,
+            p.name,
+            max(t.starting) as start_date
+        from program_enrolments pe
+        join stream_enrolments se on pe.id = se.part_of
+        join streams s on se.stream = s.id
+        join programs p on pe.program = p.id
+        join people pep on pe.student = pep.id
+        join terms t on pe.term = t.id
+        where pep.zid = %s 
+        group by 
+            p.code,
+            s.code,
+            p.name
+    """, (zid,),)
     info = cur.fetchone()
     cur.close()
     if not info:
@@ -156,25 +153,24 @@ def getStudentEnrolment(db, zid) -> (str, str, str):
 
 def getStudentMarks(db, zid) -> (str, str, str, int, str, int):
     cur = db.cursor()
-    cur.execute(
-        """
-    select
-      s.code,
-      t.code,
-      s.title,
-      ce.mark, 
-      ce.grade,
-      s.uoc
-    from course_enrolments ce
-    join courses c on ce.course = c.id
-    join subjects s on c.subject = s.id
-    join terms t on c.term = t.id
-    join people p on ce.student = p.id
-    where p.zid = %s
-    order by t.starting asc, s.code
-  """,
-        (zid,),
-    )
+    cur.execute("""
+        select
+            s.code,
+            t.code,
+            s.title,
+            ce.mark, 
+            ce.grade,
+            s.uoc
+        from course_enrolments ce
+        join courses c on ce.course = c.id
+        join subjects s on c.subject = s.id
+        join terms t on c.term = t.id
+        join people p on ce.student = p.id
+        where p.zid = %s
+        order by 
+            t.starting asc, 
+            s.code
+    """, (zid,),)
     info = cur.fetchall()
     cur.close()
     if not info:

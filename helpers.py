@@ -117,11 +117,11 @@ def getStream(db, code):
 def getStudent(db, zid):
     cur = db.cursor()
     qry = """
-  select p.*
-  from   People p
-         join Students s on s.id = p.id
-  where  p.zid = %s
-  """
+    select p.*
+    from   People p
+            join Students s on s.id = p.id
+    where  p.zid = %s
+    """
     cur.execute(qry, [zid])
     info = cur.fetchone()
     cur.close()
@@ -133,12 +133,11 @@ def getStudent(db, zid):
 
 def getSubject(db, subject):
     cur = db.cursor()
-    cur.execute(
-        """
+    cur.execute("""
     select title 
     from subjects
     where code = %s
-  """,
+    """,
         (subject,),
     )
     (title,) = cur.fetchone()

@@ -149,15 +149,13 @@ def getRequirements(db, code, table="streams"):
     join_table = "streams" if table == "streams" else "programs"
     join_field = f"for_{join_table[:-1]}"
 
-    query = sql.SQL(
-        """
-    select {fields} 
-    from requirements r 
-    join {join_table} j on r.{join_field} = j.id 
-    where j.code = %s
-    order by r.id
-  """
-    ).format(
+    query = sql.SQL("""
+        select {fields} 
+        from requirements r 
+        join {join_table} j on r.{join_field} = j.id 
+        where j.code = %s
+        order by r.id
+    """).format(
         fields=sql.SQL(", ").join(map(lambda f: sql.Identifier(*f.split(".")), fields)),
         join_table=sql.Identifier(join_table),
         join_field=sql.Identifier(join_field),

@@ -1,0 +1,36 @@
+version: "3"
+services:
+  postgres:
+    image: postgres:13.13
+    container_name: a2
+    restart: always
+    environment:
+      POSTGRES_USER: a2
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: a2
+    volumes:
+      - data:/var/lib/postgresql/data
+      - ./a2.dump.sql:/docker-entrypoint-initdb.d/a2.dump.sql
+    ports:
+      - "5432:5432"
+
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    ports:
+      - "5050:80"
+    environment:
+      PGADMIN_DEFAULT_EMAIL: ad@org.com
+      PGADMIN_DEFAULT_PASSWORD: admin
+    depends_on:
+      - postgres
+    volumes:
+      - pgadmin_data:/var/lib/pgadmin
+      - pgadmin_config:/etc/pgadmin
+
+volumes:
+  data:
+    driver: local
+  pgadmin_data:
+    driver: local
+  pgadmin_config:
+    driver: local

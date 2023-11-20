@@ -86,7 +86,7 @@ class Transcript(Db):
         return f"UOC = {self.calc_uoc()}"
 
     def __format_wam(self):
-        return f"WAM {self.calc_wam():.1f}"
+        return f"WAM = {self.calc_wam():.1f}"
 
     def __str__(self):
         return "\n".join(

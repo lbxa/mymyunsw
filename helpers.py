@@ -4,10 +4,11 @@
 
 import psycopg2
 from psycopg2 import sql
+import itertools
 
-SUBJECT = "########"
-STREAM = "######"
-PROGRAM = "####"
+SUBJECT_MASK = "########"
+STREAM_MASK = "######"
+PROGRAM_MASK = "####"
 
 GRADE_LOOKUP_FOR_UOC = {
     "PS": True,
@@ -117,7 +118,7 @@ class Requirement(Db):
 
         return (
             getSubject(self.conn, acadobj)
-            if len(acadobj) == len(SUBJECT)
+            if len(acadobj) == len(SUBJECT_MASK)
             else getStream(self.conn, acadobj)[0]
         )
 
@@ -126,13 +127,17 @@ class Requirement(Db):
     Parse acadobjs into a list of subjects/streams and return strings in accordance
     to the logic specific in the Requirement spec
     """
-
-    def __parse_acadobjs(self) -> list:
+    def parse_acadobjs(self):
+        obj_list = [s.strip() for s in self.acadobjs.split(",")]
+        for i, obj in enumerate(obj_list):
+            if obj[0] == "{" and obj[-1] == "}":
+                obj_list[i] = obj[1:-1].split(";")
+                
+        return obj_list
+     
+    def __format_acadobjs(self) -> list:
         if self.acadobjs is not None:
-            obj_list = [s.strip() for s in self.acadobjs.split(",")]
-            for i, obj in enumerate(obj_list):
-                if obj[0] == "{" and obj[-1] == "}":
-                    obj_list[i] = obj[1:-1].split(";")
+            acadobjs_list = self.parse_acadobjs() 
 
             format = (
                 lambda s, dash=False: f"{'- ' if dash else ''}{s} {self.__acadobj_desc(s)}"
@@ -140,7 +145,7 @@ class Requirement(Db):
             return "\n".join(
                 "- " + "\n  or ".join([format(sublist) for sublist in obj])
                 if type(obj) is list else format(obj, True)
-                for obj in obj_list
+                for obj in acadobjs_list
             )
 
     """Help parse max/min criteria for UOC requirements
@@ -177,10 +182,10 @@ class Requirement(Db):
         return f"{self.name} {self.uoc_minmax()}"
 
     def format_stream_req(self):
-        return f"1 stream from {self.name}\n{self.__parse_acadobjs()}"
+        return f"1 stream from {self.name}\n{self.__format_acadobjs()}"
 
     def format_core_req(self):
-        return f"all courses from {self.name}\n{self.__parse_acadobjs()}"
+        return f"all courses from {self.name}\n{self.__format_acadobjs()}"
 
     def format_elective_req(self):
         return f"{self.uoc_minmax()} courses from {self.name}\n- {self.acadobjs}"
@@ -230,14 +235,25 @@ class CourseMark:
 
         return sanitised_grade
     
+    def passed(self):
+       return self.sanitise_failing_grade() not in ('fail', 'unrs')
+    
     def __format_grade(self):
         sanitised_grade = self.sanitise_failing_grade()
-        mark_result = str(self.uoc) + "uoc" if not sanitised_grade else sanitised_grade
+        mark_outcome = str(self.uoc if self.req_name is not False else 0) + "uoc" if not sanitised_grade else sanitised_grade
+        mark = self.mark if self.mark is not None else '-'
 
-        return f"{self.mark if self.mark is not None else '-':>3} {self.grade:>2s}  {mark_result:2s}"
+        return f"{mark:>3} {self.grade:>2s}  {mark_outcome:2s}"
 
     def __format_req_name(self):
-        return " (req)" if self.req_name is not None else "" 
+        if self.req_name is None:
+            return ""
+        elif self.req_name is False:
+            if self.passed():
+                return "  Could not be allocated"
+            return ""
+        else:
+            return "  " + self.req_name 
 
     def __str__(self):
         return f"{self.course_code} {self.term} {self.course_title[:31]:<32s}{self.__format_grade()}{self.__format_req_name()}"
@@ -369,6 +385,7 @@ def getSubject(db, subject):
         (subject,),
     )
     (title,) = cur.fetchone()
+    cur.close()
     return title
 
 def getStudentMarks(db, zid) -> (str, str, str, int, str, int):
@@ -456,4 +473,6 @@ def getRequirements(db, code, table="streams"):
 
     cur = db.cursor()
     cur.execute(query, (code,))
-    return cur.fetchall()
+    requirements = cur.fetchall()
+    cur.close()
+    return requirements 

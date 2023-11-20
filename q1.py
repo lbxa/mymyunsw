@@ -62,8 +62,6 @@ try:
     prop = locl / float(intl)
     print(f"{term} {locl:6d} {intl:6d} {prop:6.1f}")
 
-  print("total rows: " + str(cur.rowcount))
-
 except Exception as err:
   print(err)
 finally:

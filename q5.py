@@ -4,7 +4,8 @@
 import sys
 import psycopg2
 import re
-from helpers import getStudent, getProgram, getStream
+from helpers import Db, getStudent, getProgram, getStream
+# from q4 import Transcript
 
 # define any local helper functions here
 
@@ -37,27 +38,32 @@ if argc == 4:
 # manipulate database
 
 try:
-  db = psycopg2.connect("dbname=ass2")
+  db = Db()
 
-  stuInfo = getStudent(db,zid)
+  stuInfo = getStudent(db.conn,zid)
   if not stuInfo:
     print(f"Invalid student id {zid}")
     exit(1)
   #print(stuInfo) # debug
 
   if progCode:
-    progInfo = getProgram(db,progCode)
+    progInfo = getProgram(db.conn,progCode)
     if not progInfo:
       print(f"Invalid program code {progCode}")
       exit(1)
     #print(progInfo)  #debug
 
   if strmCode:
-    strmInfo = getStream(db,strmCode)
+    strmInfo = getStream(db.conn,strmCode)
     if not strmInfo:
       print(f"Invalid program code {strmCode}")
       exit(1)
     #print(strmInfo)  #debug
+
+    _, zid, family_name, given_names, full_name, origin = stuInfo
+    print(f"Student: {zid} {full_name}")
+    # t = Transcript(zid)
+    # print(t)
 
   # if have a program/stream
   #   show progression check on supplied program/stream
@@ -70,5 +76,5 @@ except Exception as err:
   print("DB error: ", err)
 finally:
   if db:
-    db.close()
+    db.__del__()
 

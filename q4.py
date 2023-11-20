@@ -44,15 +44,20 @@ class Transcript(Db):
         return sum(applicable_uoc)
 
     def calc_wam(self):
-        applicable_grades = [
-            mark[3]
+        applicable_marks = [
+            (mark[3], mark[-1])
             for mark in self.marks
             if self.is_grade_applicable(mark[4], target="wam")
         ]
-        if len(applicable_grades) == 0:
+
+        total_attempted_uoc = [mark[-1] for mark in applicable_marks]
+
+        if len(total_attempted_uoc) == 0:
             return 0.0
 
-        return sum(applicable_grades) / float(len(applicable_grades))
+        weighted_mark = [mark * uoc for mark, uoc in applicable_marks]
+
+        return sum(weighted_mark) / float(sum(total_attempted_uoc))
 
     def __format_mark(self, mark, grade, uoc):
         mark_result = str(uoc) + "uoc"
@@ -166,6 +171,7 @@ def getStudentMarks(db, zid) -> (str, str, str, int, str, int):
     join terms t on c.term = t.id
     join people p on ce.student = p.id
     where p.zid = %s
+    order by t.starting asc, s.code
   """,
         (zid,),
     )

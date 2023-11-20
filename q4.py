@@ -2,6 +2,7 @@
 # Lucas Barbosa (z5259433)
 
 import sys
+import psycopg2
 import re
 from helpers import  Db, Transcript, getRequirements, getStudent, getStudentEnrolment
 
@@ -25,8 +26,8 @@ if not digits.match(zid):
     exit(1)
 
 try:
-    db = Db()
-    stuInfo = getStudent(db.conn, zid)
+    db = psycopg2.connect("dbname=a2 user=a2 password=password host=localhost")
+    stuInfo = getStudent(db, zid)
     if not stuInfo:
         print(f"Invalid student ID {zid}")
         exit()
@@ -34,14 +35,14 @@ try:
     _, zid, family_name, given_names, full_name, origin = stuInfo
     print(f"{zid} {family_name}, {given_names}")
 
-    prog_code, stream_code, prog_name = getStudentEnrolment(db.conn, zid)
+    prog_code, stream_code, prog_name = getStudentEnrolment(db, zid)
     print(prog_code, stream_code, prog_name)
 
-    t = Transcript(zid)
+    t = Transcript(db, zid)
     print(t)
 
 except Exception as err:
     print("DB error: ", err)
 finally:
     if db:
-         db.conn.close()
+         db.close()

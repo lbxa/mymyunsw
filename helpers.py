@@ -258,7 +258,7 @@ class CourseMark:
     def __str__(self):
         return f"{self.course_code} {self.term} {self.course_title[:31]:<32s}{self.__format_grade()}{self.__format_req_name()}"
 
-class Transcript(Db):
+class Transcript():
     """Glorified stdouter
 
     Summary:
@@ -272,8 +272,8 @@ class Transcript(Db):
         Db (_type_): inherits from the Db class to query the database
     """
 
-    def __init__(self, zid):
-        super().__init__()
+    def __init__(self, db, zid):
+        self.conn = db
         self.zid = zid
         self.marks = [CourseMark(*mark, None) for mark in getStudentMarks(self.conn, zid)]
         self.grades_for_uoc = GRADE_LOOKUP_FOR_UOC

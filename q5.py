@@ -2,6 +2,7 @@
 # COMP3311 21T3 Ass2 ... progression check for a given student
 
 import sys
+import psycopg2
 import re
 from helpers import SUBJECT_MASK, CourseMark, Db, Requirement, Transcript, getRequirements, getStudent, getProgram, getStream, getStudentEnrolment, getStudentMarks
 
@@ -10,8 +11,8 @@ def redact_code(code: str, mask: int):
 
 # define any local helper functions here
 class ProgressionCheck(Transcript):
-  def __init__(self, zid, prog_code, strm_code):
-    super().__init__(zid)
+  def __init__(self, db, zid, prog_code, strm_code):
+    super().__init__(db, zid)
     self.prog_code = prog_code
     self.strm_code = strm_code
     self.marks = [CourseMark(*mark, False) for mark in getStudentMarks(self.conn, zid)]
@@ -168,44 +169,44 @@ if argc == 4:
   prog_code = sys.argv[2]
   strm_code = sys.argv[3]
 
-try:
-  db = Db()
+# try:
+db = psycopg2.connect("dbname=a2 user=a2 password=password host=localhost")
 
-  stu_info = getStudent(db.conn,zid)
-  if not stu_info:
-    print(f"Invalid student id {zid}")
+stu_info = getStudent(db, zid)
+if not stu_info:
+  print(f"Invalid student id {zid}")
+  exit(1)
+
+_, zid, family_name, given_names, _, _= stu_info 
+
+if not prog_code or not strm_code:
+  prog_code, strm_code, _ = getStudentEnrolment(db, zid)
+
+if prog_code:
+  prog_info = getProgram(db, prog_code)
+  if not prog_info:
+    print(f"Invalid program code {prog_code}")
     exit(1)
 
-  _, zid, family_name, given_names, _, _= stu_info 
+_, _, prog_name = prog_info 
 
-  if not prog_code or not strm_code:
-    prog_code, strm_code, _ = getStudentEnrolment(db.conn, zid)
+if strm_code:
+  strm_info = getStream(db, strm_code)
+  if not strm_info:
+    print(f"Invalid program code {strm_code}")
+    exit(1)
 
-  if prog_code:
-    prog_info = getProgram(db.conn, prog_code)
-    if not prog_info:
-      print(f"Invalid program code {prog_code}")
-      exit(1)
+strm_name, = strm_info 
+print(strm_name)
 
-  _, _, prog_name = prog_info 
+print(f"{zid} {family_name}, {given_names}")
+print(prog_code, strm_code, prog_name)
 
-  if strm_code:
-    strm_info = getStream(db.conn, strm_code)
-    if not strm_info:
-      print(f"Invalid program code {strm_code}")
-      exit(1)
+pc = ProgressionCheck(db, zid, prog_code, strm_code)
+print(pc)
 
-  strm_name, = strm_info 
-  print(strm_name)
-
-  print(f"{zid} {family_name}, {given_names}")
-  print(prog_code, strm_code, prog_name)
-
-  pc = ProgressionCheck(zid, prog_code, strm_code)
-  print(pc)
-
-except Exception as err:
-  print("DB error: ", err)
-finally:
-  if db:
-    db.conn.close()
+# except Exception as err:
+#   print("DB error: ", err)
+# finally:
+#   if db:
+#     db.close()

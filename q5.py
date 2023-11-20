@@ -4,7 +4,7 @@
 import sys
 import psycopg2
 import re
-from helpers import SUBJECT_MASK, CourseMark, Db, Requirement, Transcript, getRequirements, getStudent, getProgram, getStream, getStudentEnrolment, getStudentMarks
+from helpers import SUBJECT_MASK, CourseMark, Requirement, Transcript, getRequirements, getStudent, getProgram, getStream, getStudentEnrolment, getStudentMarks
 
 def redact_code(code: str, mask: int):
   return code[:mask] + '#' * (len(SUBJECT_MASK) - mask)

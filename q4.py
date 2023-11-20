@@ -4,7 +4,7 @@
 import sys
 import psycopg2
 import re
-from helpers import  Db, Transcript, getRequirements, getStudent, getStudentEnrolment
+from helpers import  Transcript, getRequirements, getStudent, getStudentEnrolment
 
 ### set up some globals
 

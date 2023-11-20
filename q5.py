@@ -44,8 +44,8 @@ class ProgressionCheck(Transcript):
     4. free
   """
   def init_requirements(self):
-    strm_reqs = [Requirement(*r) for r in getRequirements(self.conn, self.strm_code, "streams")]
-    prog_reqs = [Requirement(*r) for r in getRequirements(self.conn, self.prog_code, "programs")]
+    strm_reqs = [Requirement(self.conn, *r) for r in getRequirements(self.conn, self.strm_code, "streams")]
+    prog_reqs = [Requirement(self.conn, *r) for r in getRequirements(self.conn, self.prog_code, "programs")]
 
     # streams always go first
     reqs = strm_reqs + prog_reqs

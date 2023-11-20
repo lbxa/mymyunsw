@@ -169,41 +169,41 @@ if argc == 4:
   prog_code = sys.argv[2]
   strm_code = sys.argv[3]
 
-# try:
-db = psycopg2.connect("dbname=ass2")
+try:
+  db = psycopg2.connect("dbname=ass2")
 
-stu_info = getStudent(db, zid)
-if not stu_info:
-  print(f"Invalid student id {zid}")
-  exit(1)
-
-_, zid, family_name, given_names, _, _= stu_info 
-
-if not prog_code or not strm_code:
-  prog_code, strm_code, _ = getStudentEnrolment(db, zid)
-
-if prog_code:
-  prog_info = getProgram(db, prog_code)
-  if not prog_info:
-    print(f"Invalid program code {prog_code}")
+  stu_info = getStudent(db, zid)
+  if not stu_info:
+    print(f"Invalid student id {zid}")
     exit(1)
 
-_, _, prog_name = prog_info 
+  _, zid, family_name, given_names, _, _= stu_info 
 
-if strm_code:
-  strm_info = getStream(db, strm_code)
-  if not strm_info:
-    print(f"Invalid program code {strm_code}")
-    exit(1)
+  if not prog_code or not strm_code:
+    prog_code, strm_code, _ = getStudentEnrolment(db, zid)
 
-print(f"{zid} {family_name}, {given_names}")
-print(prog_code, strm_code, prog_name)
+  if prog_code:
+    prog_info = getProgram(db, prog_code)
+    if not prog_info:
+      print(f"Invalid program code {prog_code}")
+      exit(1)
 
-pc = ProgressionCheck(db, zid, prog_code, strm_code)
-print(pc)
+  _, _, prog_name = prog_info 
 
-# except Exception as err:
-#   print("DB error: ", err)
-# finally:
-#   if db:
-#     db.close()
+  if strm_code:
+    strm_info = getStream(db, strm_code)
+    if not strm_info:
+      print(f"Invalid program code {strm_code}")
+      exit(1)
+
+  print(f"{zid} {family_name}, {given_names}")
+  print(prog_code, strm_code, prog_name)
+
+  pc = ProgressionCheck(db, zid, prog_code, strm_code)
+  print(pc)
+
+except Exception as err:
+  print("DB error: ", err)
+finally:
+  if db:
+    db.close()

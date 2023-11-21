@@ -66,6 +66,12 @@ GRADE_LOOKUP_FOR_WAM = {
     "WJ": False,
 }
 
+"""
+Delete a dict from a list by key-value
+"""
+def del_dict(l: list, func) -> list:
+    return [d for d in l if func(d)]
+
 # class Db:
 #     """Connect to the database
 
@@ -134,6 +140,16 @@ class Requirement():
                 obj_list[i] = obj[1:-1].split(";")
                 
         return obj_list
+
+    def search_acadobjs(self, course_code) -> bool:
+        for obj in self.parse_acadobjs():
+            if type(obj) is list:
+                for subitem in obj:
+                   if course_code == subitem:
+                       return True 
+            else:
+                if course_code == obj:
+                    return True 
      
     def __format_acadobjs(self) -> list:
         if self.acadobjs is not None:
@@ -236,7 +252,7 @@ class CourseMark:
         return sanitised_grade
     
     def passed(self):
-       return self.sanitise_failing_grade() not in ('fail', 'unrs')
+       return self.sanitise_failing_grade() not in ('fail', 'unrs') and self.grade is not None
     
     def __format_grade(self):
         failing_grade = self.sanitise_failing_grade()

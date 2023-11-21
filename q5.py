@@ -1,10 +1,11 @@
 #!/usr/bin/python3
 # COMP3311 21T3 Ass2 ... progression check for a given student
 
+from collections import defaultdict
 import sys
 import psycopg2
 import re
-from helpers import SUBJECT_MASK, CourseMark, Requirement, Transcript, getRequirements, getStudent, getProgram, getStream, getStudentEnrolment, getStudentMarks
+from helpers import SUBJECT_MASK, CourseMark, Requirement, Transcript, del_dict, getRequirements, getStudent, getProgram, getStream, getStudentEnrolment, getStudentMarks
 
 def redact_code(code: str, mask: int):
   return code[:mask] + '#' * (len(SUBJECT_MASK) - mask)
@@ -60,19 +61,18 @@ class ProgressionCheck(Transcript):
       'free': [r for r in reqs if r.type == 'free'],
     }
 
-    reqs_tracker = {
-      'core': [],
-      'elective': [],
-      'gened': [],
-      'free': [],
-    }
+    reqs_tracker = defaultdict(list)
 
     for req in reqs_by_type['core']:
       # print(req, req.code)
       for mark in self.get_uncounted_marks():
         if mark.course_code in req.acadobjs and mark.passed():
           mark.req_name = req.name
-          # reqs_tracker['core'].append((req, mark.uoc))
+          # if req.search_acadobjs(mark.course_code):
+          reqs_tracker[req.name].append(mark)
+
+      reqs_tracker[req.name].append(max(req.min_req, req.max_req, 6*len(req.parse_acadobjs())))
+      reqs_tracker[req.name].append(req)
 
     for req in reqs_by_type['elective']:
       # print(req, req.code)
@@ -80,12 +80,18 @@ class ProgressionCheck(Transcript):
       for mark in self.get_uncounted_marks():
         if mark.course_code in req.acadobjs and mark.passed() and self.check_uoc_overflow(mark, req):
           mark.req_name = req.name 
-          reqs_tracker['elective'].append(req)
+          if req.search_acadobjs(mark.course_code):
+            reqs_tracker[req.name].append(mark)
+
       # then san for general patterns e.g. COMP4####
       for mark in self.get_uncounted_marks():
         if redact_code(mark.course_code, 5) in req.acadobjs and mark.passed() and self.check_uoc_overflow(mark, req):
           mark.req_name = req.name 
-          reqs_tracker['elective'].append(req)
+          if req.search_acadobjs(mark.course_code):
+            reqs_tracker[req.name].append(mark)
+
+      reqs_tracker[req.name].append(max(req.min_req, req.max_req))
+      reqs_tracker[req.name].append(req)
 
     for req in reqs_by_type['gened']:
       # print(req, req.code)
@@ -93,34 +99,48 @@ class ProgressionCheck(Transcript):
       for mark in self.get_uncounted_marks():
         if redact_code(mark.course_code, 3) == 'GEN#####' and mark.passed() and self.check_uoc_overflow(mark, req):
           mark.req_name = req.name 
-          reqs_tracker['gened'].append(req)
+          if req.search_acadobjs(mark.course_code):
+            reqs_tracker[req.name].append(mark)
+
       # then scan the rest 
       for mark in self.get_uncounted_marks():
         if mark.passed() and self.check_uoc_overflow(mark, req):
           mark.req_name = req.name 
-          reqs_tracker['gened'].append(req)
+          if req.search_acadobjs(mark.course_code):
+            reqs_tracker[req.name].append(mark)
+
+      reqs_tracker[req.name].append(max(req.min_req, req.max_req))
+      reqs_tracker[req.name].append(req)
 
     for req in reqs_by_type['free']:
       # print(req, req.code)
       for mark in self.get_uncounted_marks() :
         if mark.passed() and self.check_uoc_overflow(mark, req):
           mark.req_name = req.name 
-          reqs_tracker['free'].append(req)
+          if req.search_acadobjs(mark.course_code):
+            reqs_tracker[req.name].append(mark)
+        
+      reqs_tracker[req.name].append(max(req.min_req, req.max_req))
+      reqs_tracker[req.name].append(req)
 
     self.missing_requirements = reqs_tracker
-      
-    # for mark in self.get_uncounted_marks():
-    #   print(mark)
-
-    # print("=="*15)
-
     
   def format_missing_requirements(self):
-    for req_type, missing_reqs in self.missing_requirements.items():
-      for r in missing_reqs:
-        pass
+    format_strs = []
 
-    return ""
+    for k, v in self.missing_requirements.items():
+      marks = v[:-2]
+      uoc = [mark.uoc for mark in marks]
+      if sum(uoc) == 0:
+        uoc = [6 for mark in marks]
+      uoc_criteria = v[-2]
+      requirement = v[-1]
+      
+      if sum(uoc) != uoc_criteria:
+        diff = uoc_criteria - sum(uoc)
+        format_strs.append(f"Need {diff} more UOC for {requirement.name}")
+
+    return "\n".join(format_strs)
 
   def format_progession_status(self):
     return "Eligible to graduate" if sum(self.get_counted_uoc()) >= self.uoc_requirement else self.format_missing_requirements()
@@ -170,7 +190,7 @@ if argc == 4:
   strm_code = sys.argv[3]
 
 try:
-  db = psycopg2.connect("dbname=ass2")
+  db = psycopg2.connect("dbname=ass2 user=postgres password=password host=localhost")
 
   stu_info = getStudent(db, zid)
   if not stu_info:

@@ -5,8 +5,9 @@ services:
     container_name: ass2
     restart: always
     environment:
-      # POSTGRES_USER: a2
-      # POSTGRES_PASSWORD: password
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: password
+      # POSTGRES_HOST_AUTH_METHOD: trust
       POSTGRES_DB: ass2
     volumes:
       - data:/var/lib/postgresql/data
